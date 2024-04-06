@@ -1,0 +1,1 @@
+The purpose of AM, FM code and PM, FM code is to modulate a message signal in AM, FM and PM in order to be transferred. The code calculates the AM, FM and PM signal along with their frequency spectrum.
