@@ -1,1 +1,1 @@
-The purpose of this repository is to present my personal projects. I am happy that you see it. The description of each project exist in the relevant files.
+The purpose of this repository is to present my personal projects. I am happy that you see it. The description of each project exist in the relevant files. There is also a presentation, in Greek, that explains the signals and the code that have been generated. https://drive.google.com/drive/folders/1x8tob8wERn4ZL56TfMp2Mjq5n2xA8Ypu?usp=sharing
