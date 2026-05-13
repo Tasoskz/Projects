@@ -7,3 +7,5 @@ A function was also build to translate the pressure data of the BMP-388 to altit
 pressure sensor was used (MPXV7002DP) to determine the speed of the airctaft utilizing the pitot tube. Above an overview of the conceptual design is presented.
 ![Image](conceptual_design.png)
 
+The code of the flight dara collection is not presented since I was not dynamically involved; however, a code section is presented in the report, which was a 
+project assigned to me for a presentation of our PCB.
