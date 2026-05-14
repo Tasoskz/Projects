@@ -14,5 +14,6 @@ In the third chapter, an analysis takes place for the amplification topology of 
 CSA are being discussed and comapred in terms of gain and bandwidth. The amplification topology is being chosen and a noise analysis follows.
 
 In the fourth chapter, the chosen architecture is being analyzed; its time/frequency response and its noise behavior is being simulated. In the fifth chapter, the layout is presented, and post and prelayour simulations are being compared. The schematic and layout design are presented below.
-![Image](Layout.png)
 ![Image](Schematic.png)
+![Image](Layout.png)
+
