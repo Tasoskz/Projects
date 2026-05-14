@@ -13,4 +13,4 @@ and noise sources on CMOS technology are presented. Emphasis is given to thermal
 In the third chapter, an analysis takes place for the amplification topology of the Charge Sensitive Preamplifier. Firstly, the most common topologies in
 CSA are being discussed and comapred in terms of gain and bandwidth. The amplification topology is being chosen and a noise analysis follows.
 
-In the fourth chapter, the chosen archtecture is being analyzed, and its time/frequency response and its noise behavior is being simulated. In the fifth chapter, the layout is presented, and post and prelayour simulations are being compared.
+In the fourth chapter, the chosen architecture is being analyzed, and its time/frequency response and its noise behavior is being simulated. In the fifth chapter, the layout is presented, and post and prelayour simulations are being compared.
