@@ -1,3 +1,4 @@
+# Description
 The architecture used in this project was a telescopic folded cascode amplifier with ideal gain boosting and common mode feedback blocks.
 The specifications of the OPAMP design was:  
 -settling time : 1.11us  
