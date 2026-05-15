@@ -1,3 +1,4 @@
+# Description
 The microcontroller used for this design was the STM32G0B1KET6N. Its selection was based in the number of its pins and the availability, since at that time
 there was notable shortage on STM32 microcontrollers. The PCB was mounted on the UAV aircrafts of the team in order to collect flight data, usefull for the 
 airnautics designers.
