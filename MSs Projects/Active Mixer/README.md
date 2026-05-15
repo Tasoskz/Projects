@@ -1,5 +1,5 @@
 # Description
-This project is focused in the schematic design and optimization of a double banced active mixer. The specifications that had to be fulfilled was:  
+This project is focused in the schematic design and optimization of a double balanced active mixer. The specifications that had to be fulfilled was:  
 -Suppresion of the third intermodulation products : bigger than 35dBc  
 -Output power : 4dBm
 -Conversion gain : bigger than 1dB
