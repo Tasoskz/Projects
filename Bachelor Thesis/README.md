@@ -1,3 +1,4 @@
+# Description
 The subject of this thesis is the study and the implementation of a Charge Sensitive Preamplifier (CSA) for capacitive detection in High Energy Physics experiments
 [HEP]. The design was implemented using a 0.18 um CMOS process by XFAB. To simulate the capacitive detector, a current source in parallel with a capacitor was
 used. It is worth mentioning that the CSA circuit provides an output conversion gain of 2.29 mV/fC, a total gain of 122 dB, and a bandwidth of 505 kHz.
