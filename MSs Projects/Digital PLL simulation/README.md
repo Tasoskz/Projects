@@ -1,4 +1,4 @@
-This is an s-domain and t-doamin simulation for a digital PLL with the following specifications:  
+This is an s-domain and t-domain simulation for a digital PLL with the following specifications:  
 | Parameter | Value |
 |-----------|-------|
 | Reference (REF) frequency | 100 MHz |
