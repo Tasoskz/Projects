@@ -3,5 +3,4 @@ Doherty amplifier is a power amplifier which introduce higher efficiency than th
 ![image](Doherty_Amplifier.png)  
 For input amplitudes greater than a certain point the peak amplifier is activated and current is drawn from it as well. As a result the current applied at the load is greater, which it can be translated as an increase of the load. From the mail amplfiier point of view the load is decreasing due to the λ/4 line. In otherwords the inclination of the load line shifts when the input voltage of the main amplifier is big keeping its output swing stable at its maximum. This architecture can create a peak efficiency in the desired back-off point.
 
-This project uses ideal devices for the amplifiers and its purpose is the study of the concept and the loading design. The ADS filies can be found above.   
-[here](https://drive.google.com/file/d/1hC2xOqjMxzSk0jvmBcT99GDR3Dh5CtK-/view?usp=sharing)
+This project uses ideal devices for the amplifiers and its purpose is the study of the concept and the loading design. The ADS filies can be found [here](https://drive.google.com/file/d/1hC2xOqjMxzSk0jvmBcT99GDR3Dh5CtK-/view?usp=sharing).
