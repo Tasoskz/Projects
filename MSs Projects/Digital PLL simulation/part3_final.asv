@@ -1,0 +1,280 @@
+clear; clc; close all;
+
+% 1. Specifications
+f_ref = 100e6;
+f_dco = 2.4e9;
+Delta_F = 20e6;
+f_init_dco = f_dco - Delta_F; % DCO starts a bit slower
+f_off = 1e6;
+N = f_dco / f_ref;
+T_ref = 1/f_ref;
+T_o = 1/f_dco;
+T_init_dco = 1 / f_init_dco;
+alpha = 76.78 * 10^-3;
+rho = 2.95 * 10^-3;
+K_dco = 25e3;
+K_T = K_dco / f_dco^2;
+Delta_tres = 2e-12;
+f = logspace(2, 10, 4000); 
+s = 2*pi*1i*f;
+
+% 2. Noise
+S_ref = 2 * 10^(-155/10); 
+S_thermal = 2 * 10^(-120/10); 
+sigma_t_ref = (1/(2*pi*f_dco)) * sqrt(S_ref * f_dco);
+sigma_t_dco = (f_off/f_dco) * sqrt((S_thermal) / f_dco);
+
+% 3. Phases
+% Phase 1 [PLL tries to lock]
+N_locking  = 10000;
+% Phase 2 [PLL remain locked and the plots are extracted]
+N_locked = 500000; 
+N_total = N_locking + N_locked;
+rng(1);   % same random values
+
+% 4. Pre-allocated storage [for faster response]
+t_ref = zeros(N_total, 1);        % REF edge timestamps
+t_div = zeros(N_total, 1);        % Divider edge timestamps  
+t_e = zeros(N_total, 1);          % time error 
+D_in = zeros(N_total, 1);         % TDC output
+D_out = zeros(N_total, 1);        % Loop filter output
+OTW = zeros(N_total, 1);          % Oscillator code word
+f_inst_dco = zeros(N_total, 1);   % Instantaneous DCO frequency
+T_inst_dco = zeros(N_total, 1);   % Instantaneous DCO period
+integral_sum = zeros(N_total, 1); % Integrator state (rho path)
+O_TDC = zeros(N_total, 1);        % TDC output code
+
+% 5. Timestamps produced by the DCO for the locking condition
+% N times more than the reference
+CKV_locked = zeros(N_locked * N, 1);
+
+% 6. Build of the reference signal
+for n = 1:N_total
+    t_ref(n) = n * T_ref + sigma_t_ref * randn(1);
+end
+
+% 7. Initialization
+OTW_init = Delta_F / K_dco; % code of the initial frequency offset
+int_sum = 0;               % t=0, no error yet in the filter integrator
+edge_ptr = 0;              % 0 indexing for CKV_locked at t=0
+t_ckv = 0;                 % 0 timestamps at t=0
+
+
+% 8. Initializing the output of the divider
+for n = 1:N
+    edge_ptr = edge_ptr + 1;
+    t_ckv = t_ckv + T_o + sigma_t_dco * randn(1) - K_T*OTW_init;
+end
+t_div(1) = t_ckv; % First divider output after 24 ref cycles.
+
+
+%  7. Time model of the ADPLL
+
+for k = 1:N_total
+
+    % 7.1 Time error 
+    t_e(k) = t_ref(k) - t_div(k);
+
+    % 7.2 TDC quantisation 
+    O_TDC(k) = round(t_e(k) / Delta_tres);
+
+    % DCO period when the cycle arrives
+    if k == 1
+        TDCO = T_o - K_T*OTW_init; % DCO period at t=0, when first cycle arrives
+    else
+        TDCO = T_inst_dco(k-1);  % DCO period when new cycle arrives
+    end
+    D_in(k) = O_TDC(k) * (Delta_tres / TDCO);
+
+    % 7.3 loop filter 
+    int_sum  = int_sum + D_in(k); % the sum at the integral gain
+    D_out(k)  = alpha*D_in(k) + rho*int_sum; % the proportional part of the filter
+
+    % 7.4 OTW
+    OTW(k) = -(f_ref/K_dco) * D_out(k); % output code of the filted
+
+    % 7.5 instantenous values of DCO
+    f_inst_dco(k)  = f_dco + K_dco*OTW(k);
+    T_inst_dco(k) = T_o - K_T*OTW(k);
+
+    % 7.6 Generation of the next DCO edges
+    if k < N_total
+        for n = 1:N
+            edge_ptr = edge_ptr + 1; % Count and indexing of the DCO timestamps
+            t_ckv    = t_ckv + T_o + sigma_t_dco * randn(1) - K_T * OTW(k);
+
+            % Store CKV timestamps only for the locked section
+            if k >= N_locking
+                locked_idx = (k - N_locking)*N + n;
+                if locked_idx >= 1 && locked_idx <= numel(CKV_locked)
+                    CKV_locked(locked_idx) = t_ckv;
+                end
+            end
+        end
+        t_div(k+1) = t_ckv; % 24th DCO timestamp becomes the divider timestamp 
+    end
+
+end
+fprintf('Simulation complete.\n\n');
+
+%=================================================
+%  8. Transient quantities
+%=================================================
+
+t_us = (1:N_total)' * T_ref * 1e6;   % time axis [µs]
+freq_dev = f_inst_dco - f_dco;            % frequency deviation [Hz]
+phi_err_n = t_e / T_ref;                   % = Phi_e[k] / (2*pi)  [cycles]
+period_dev = T_inst_dco - T_o;              % period deviation [s]
+
+
+%  9. Settling time (2% off)
+
+settle_band  = 0.02 * abs(Delta_F);
+settling_idx = NaN;
+for k = 1:N_total
+    if all(abs(freq_dev(k:end)) <= settle_band)
+        settling_idx = k;
+        break;
+    end
+end
+
+if ~isnan(settling_idx)
+    settling_time_us = t_us(settling_idx);
+    fprintf('Settling time = %.3f µs  (%d ref cycles, 2%% criterion)\n', ...
+        settling_time_us, settling_idx);
+else
+    settling_time_us = NaN;
+    disp('Settling not reached within simulation window.');
+end
+%=================================================
+%  3(b): Transient plots 
+%=================================================
+
+%  3(b).1 Instantaneous Frequency deviation
+
+figure('Color', 'w');
+
+plot(t_us, freq_dev/1e6, 'r', 'LineWidth', 1); 
+grid on;
+
+% background of the plot
+set(gca, 'Color', 'w');       
+set(gca, 'XColor', 'k');      
+set(gca, 'YColor', 'k');      
+set(gca, 'GridColor', 'k');   
+set(gca, 'MinorGridColor', 'k'); 
+
+% labeling and layout
+grid on;
+ylabel('\Delta f_{CKV} (MHz)');
+title('Instantaneous Frequency Deviation','Color', 'k');
+xlabel('Time (us)');
+xlim([0 5]);
+
+%  3(b).2 Instantaneous phase error
+figure('Color', 'w');
+
+plot(t_us, phi_err_n, 'b', 'LineWidth', 1); 
+hold on;
+yline(0, 'k--', 'LineWidth', 0.8);
+grid on;
+
+% background of the plot
+set(gca, 'Color', 'w');       
+set(gca, 'XColor', 'k');      
+set(gca, 'YColor', 'k');      
+set(gca, 'GridColor', 'k');   
+set(gca, 'MinorGridColor', 'k'); 
+
+
+ylabel('\Phi_e[k] / 2\pi');
+title(' Instantaneous phase error','Color', 'k');
+xlabel('Time (us)');
+xlim([0 5]);
+
+%  3(b).3 Instantaneous period deviation
+figure('Color', 'w');
+
+plot(t_us, period_dev*1e12, 'g', 'LineWidth', 1); 
+hold on;
+yline(0, 'k--', 'LineWidth', 0.8);
+grid on;
+
+% background of the plot
+set(gca, 'Color', 'w');       
+set(gca, 'XColor', 'k');      
+set(gca, 'YColor', 'k');      
+set(gca, 'GridColor', 'k');   
+set(gca, 'MinorGridColor', 'k'); 
+
+xlabel('Time (\mus)');
+ylabel('\Delta T_{CKV} (ps)');
+title(' Instantaneous period deviation','Color', 'k');
+xlim([0 5]);
+
+%% =========================================================
+%  PART 3(c): Phase noise from locked CKV timestamps
+% ==========================================================
+fprintf('Computing phase noise from locked CKV edges...\n');
+
+valid     = CKV_locked > 0;
+CKV_valid = CKV_locked(valid);
+M         = numel(CKV_valid);
+fprintf('  Locked CKV edges available: %d\n', M);
+
+if M > 1000
+    % Excess timing error vs ideal grid at f0
+    n_idx   = (0:M-1)';
+    t_ideal = CKV_valid(1) + n_idx * T_o;
+    t_err   = CKV_valid - t_ideal;
+
+    % Convert to phase [rad]
+    phi_rad = 2*pi * f_dco * t_err;
+
+    phase = 2 * pi * t_dev / T_o;
+seg_len = floor(M / 20);
+[Y, f_pn] = pwelch(phase, blackmanharris(seg_len), [], [], f_dco, 'onesided');
+PN_SSB = 10*log10(Y) - 3;
+
+    % Theoretical overlay lines
+    f_ax      = logspace(3, log10(f0/2), 500);
+    L_ref_th  = -155 * ones(size(f_ax));
+    L_free_th = -120 - 20*log10(f_ax / f_off_ref);
+
+    figure('Name','ADPLL Phase Noise','Position',[100 100 820 500]);
+    semilogx(f_plot, L_dBc,     'b',   'LineWidth', 1.4, 'DisplayName','ADPLL simulated');
+    hold on;
+    semilogx(f_ax, L_ref_th,    'k--', 'LineWidth', 1.0, 'DisplayName','REF  -155 dBc/Hz');
+    semilogx(f_ax, L_free_th,   'r--', 'LineWidth', 1.0, 'DisplayName','Free DCO  -120 dBc/Hz @ 1 MHz');
+    xlabel('Offset frequency (Hz)');
+    ylabel('L(f)  [dBc/Hz]');
+    title('ADPLL output phase noise (locked)');
+    legend('Location','southwest');
+    xlim([1e3 f0/2]);
+    ylim([-175 -80]);
+    grid on;
+
+    %% =========================================================
+    %  PART 3(d): Integrated jitter (in-lock)
+    % ==========================================================
+    f_lo = 10e3;
+    f_hi = 40e6;
+    mask = f_pn >= f_lo & f_pn <= f_hi;
+    J_rms_rad = sqrt(trapz(f_pn(mask), Sphi(mask)));
+    J_rms_ps  = J_rms_rad / (2*pi*f0) * 1e12;
+
+    fprintf('\n=== Integrated jitter  %.0f kHz - %.0f MHz ===\n', ...
+        f_lo*1e-3, f_hi*1e-6);
+    fprintf('  RMS phase  = %.4f rad\n', J_rms_rad);
+    fprintf('  RMS jitter = %.3f ps\n',  J_rms_ps);
+
+    text(f_lo*4, -96, ...
+        sprintf('J_{rms} = %.2f ps  (%.0f kHz - %.0f MHz)', ...
+                J_rms_ps, f_lo*1e-3, f_hi*1e-6), ...
+        'FontSize', 9, 'Color', 'b');
+else
+    warning('Not enough locked edges for phase noise computation.');
+end
+
+fprintf('\nAll done.\n');
+
